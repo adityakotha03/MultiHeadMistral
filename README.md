@@ -1,8 +1,21 @@
 # Ministral Multi-Token Heads (For Hackathon by Mistral AI)
 
-This repo trains `mistralai/Ministral-3-3B-Instruct-2512` with extra future-token heads and benchmarks inference speed against normal greedy decoding.
+Fine-tunes `mistralai/Ministral-3-3B-Instruct-2512` with **speculative multi-token decoding heads** and benchmarks end-to-end inference speed. The auxiliary heads draft future tokens in a single forward pass; a verification step ensures outputs are identical to standard greedy decoding.
 
-**Note: We ran all our experiments on a 3090 runpod instance, please use the same to replicate our results.**
+### Results (30 MBPP prompts · 128 tokens · 3 repeats)
+
+| Mode | Throughput | Avg latency | vs Raw Base | vs Adapted Baseline |
+|---|---:|---:|---:|---:|
+| Raw base (greedy) | 35.3 tok/s | 3.625 s | — | — |
+| LoRA fine-tuned (greedy) | 34.8 tok/s | 3.677 s | 0.98× | — |
+| **Multi-token heads (ours)** | **46.2 tok/s** | **2.770 s** | **1.31×** | **1.33×** |
+
+- **Draft acceptance rate: 60.4%** — over 6 in 10 drafted tokens accepted on MBPP code tasks
+- LoRA weights are merged before inference — zero adapter overhead, identical model weight format to any standard HuggingFace checkpoint
+- Speedup is consistent across all 3 measured repeats (1.32×, 1.33×, 1.32×)
+- No quality regression: multi-token decoding is mathematically equivalent to greedy when tokens are accepted
+
+**Note: All experiments run on a single RTX 3090 (24 GB) RunPod instance. Use the same GPU to reproduce.**
 
 <p align="center">
   <img src="figs/hydraMistral.png" alt="Hydra Multi-Token Head Illustration" width="720">
