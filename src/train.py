@@ -118,6 +118,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help='Checkpoint path to resume from, or "latest" to pick latest checkpoint-* in output_dir.',
     )
+    parser.add_argument(
+        "--print_param_stats_only",
+        action="store_true",
+        help="Load model, print trainable/frozen parameter fractions, write stats JSON, and exit.",
+    )
     return parser.parse_args()
 
 
@@ -193,6 +198,62 @@ def _resolve_resume_checkpoint(
     return None
 
 
+def _collect_param_stats(model) -> Dict[str, float | int]:
+    total_params = int(sum(p.numel() for p in model.parameters()))
+    trainable_params = int(sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+    base_total_params = int(sum(p.numel() for p in model.base_model.parameters()))
+    aux_head_params = int(sum(p.numel() for p in model.aux_heads.parameters()))
+    aux_head_trainable_params = int(sum(p.numel() for p in model.aux_heads.parameters() if p.requires_grad))
+
+    lora_trainable_params = 0
+    other_trainable_params = 0
+    for name, param in model.base_model.named_parameters():
+        if not param.requires_grad:
+            continue
+        numel = int(param.numel())
+        if "lora_" in name:
+            lora_trainable_params += numel
+        else:
+            other_trainable_params += numel
+
+    frozen_params = int(total_params - trainable_params)
+
+    def pct(num: int, den: int) -> float:
+        return float((100.0 * num) / den) if den > 0 else 0.0
+
+    stats: Dict[str, float | int] = {
+        "num_future_heads": int(getattr(model, "num_future_heads", 1)),
+        "total_params": total_params,
+        "frozen_params": frozen_params,
+        "trainable_params": trainable_params,
+        "trainable_fraction_pct": pct(trainable_params, total_params),
+        "base_total_params": base_total_params,
+        "aux_head_params_total": aux_head_params,
+        "aux_head_trainable_params": aux_head_trainable_params,
+        "aux_head_params_over_base_pct": pct(aux_head_params, base_total_params),
+        "lora_trainable_params": int(lora_trainable_params),
+        "lora_trainable_over_base_pct": pct(int(lora_trainable_params), base_total_params),
+        "other_base_trainable_params": int(other_trainable_params),
+    }
+    return stats
+
+
+def _print_param_stats(stats: Dict[str, float | int]) -> None:
+    print("\n[model] Parameter Stats")
+    print(f"- total_params: {int(stats['total_params']):,}")
+    print(f"- trainable_params: {int(stats['trainable_params']):,}")
+    print(f"- frozen_params: {int(stats['frozen_params']):,}")
+    print(f"- trainable_fraction_pct: {float(stats['trainable_fraction_pct']):.4f}%")
+    print(f"- base_total_params: {int(stats['base_total_params']):,}")
+    print(f"- aux_head_params_total: {int(stats['aux_head_params_total']):,}")
+    print(f"- aux_head_trainable_params: {int(stats['aux_head_trainable_params']):,}")
+    print(f"- aux_head_params_over_base_pct: {float(stats['aux_head_params_over_base_pct']):.4f}%")
+    print(f"- lora_trainable_params: {int(stats['lora_trainable_params']):,}")
+    print(f"- lora_trainable_over_base_pct: {float(stats['lora_trainable_over_base_pct']):.4f}%")
+    print(f"- other_base_trainable_params: {int(stats['other_base_trainable_params']):,}")
+
+
 def main() -> None:
     args = parse_args()
     load_env_file(".env")
@@ -215,8 +276,18 @@ def main() -> None:
         os.environ.setdefault("WANDB_NAME", cfg.wandb_run_name)
 
     tokenizer = load_tokenizer(cfg.base_model_name, hf_token=hf_token)
-    train_dataset, eval_dataset = build_mbpp_datasets(tokenizer=tokenizer, cfg=cfg)
     model = build_training_multitoken_model(cfg=cfg, hf_token=hf_token)
+    param_stats = _collect_param_stats(model)
+    _print_param_stats(param_stats)
+    param_stats_path = Path(cfg.output_dir, "training_param_stats.json")
+    param_stats_path.write_text(json.dumps(param_stats, indent=2), encoding="utf-8")
+    print(f"[info] Saved parameter stats to: {param_stats_path}")
+
+    if args.print_param_stats_only:
+        print("[info] Exiting after parameter stats (no training run).")
+        return
+
+    train_dataset, eval_dataset = build_mbpp_datasets(tokenizer=tokenizer, cfg=cfg)
     loaded_in_4bit = bool(getattr(model.base_model, "is_loaded_in_4bit", False))
 
     use_bf16 = torch.cuda.is_available() and torch.cuda.is_bf16_supported()

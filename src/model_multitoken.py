@@ -303,6 +303,9 @@ def load_base_model_for_inference(
         model_type=model_type,
     )
     adapted_model = PeftModel.from_pretrained(base_model, str(adapter_dir), is_trainable=False)
+    loaded_in_4bit = bool(getattr(base_model, "is_loaded_in_4bit", False))
+    if not loaded_in_4bit:
+        adapted_model = adapted_model.merge_and_unload()
     _set_use_cache_flag(adapted_model, use_cache=True)
     adapted_model.eval()
     return adapted_model

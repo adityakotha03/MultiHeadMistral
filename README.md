@@ -1,6 +1,8 @@
-# Ministral Multi-Token Heads (Hackathon Starter)
+# Ministral Multi-Token Heads (For Hackathon by Mistral AI)
 
 This repo trains `mistralai/Ministral-3-3B-Instruct-2512` with extra future-token heads and benchmarks inference speed against normal greedy decoding.
+
+**Note: We ran all our experiments on a 3090 runpod instance, please use the same to replicate our results.**
 
 ## What This Implements
 - LoRA fine-tuning on Hugging Face `mbpp` code tasks (`use_4bit=false` by default).
@@ -75,6 +77,56 @@ Outputs:
   - `raw_base` (original model AR)
   - `adapted_baseline` (LoRA model AR)
   - `multi_token` (LoRA model + multi-token decode)
+
+Optional: generate a side-by-side GIF for one prompt:
+```bash
+python -m src.make_speed_gif --model_dir outputs/mt_3b_demo --max_new_tokens 128 --fixed_length --fps 10
+```
+This saves `outputs/mt_3b_demo/speed_side_by_side.gif`.
+You can provide your own input with either:
+- `--question "..."` (wrapped in a neutral instruction template, non-code by default)
+- `--prompt "..."` (full prompt text as-is)
+- `--question "..." --code_template` (old code-generation wrapper behavior)
+```bash
+python -m src.make_speed_gif --model_dir outputs/mt_3b_demo --max_new_tokens 128 --fixed_length --fps 10 --question "Explain in simple terms why regular exercise helps mental health."
+```
+
+## 4) Run Quality Benchmarks (lm-eval Harness)
+Quick 4-task benchmark (raw base vs adapted LoRA vs multi-token):
+```bash
+python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo
+```
+
+By default this runs:
+- `arc_easy`
+- `hellaswag`
+- `piqa`
+
+and uses a quick limit (`--limit 100`) for faster hackathon iteration.
+
+Fuller run (no limit):
+```bash
+python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo --limit 0
+```
+
+Custom task list:
+```bash
+python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo --tasks arc_easy,piqa,winogrande,hellaswag
+```
+
+If you include code-exec tasks (for example `mbpp` / `humaneval`), add:
+```bash
+python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo --tasks mbpp,humaneval --confirm_run_unsafe_code
+```
+
+Artifacts written to `outputs/mt_3b_demo/lm_eval/`:
+- `lm_eval_summary.json` (full merged result, commands, per-task comparison)
+- `lm_eval_comparison.md` (table for slides/judging)
+- For Ministral/Mistral3, the script uses lm-eval's `hf-mistral3` backend (PR #3487) when available, and auto-falls back to the older `hf` loading path if needed.
+- `multi_token` is included by default in the report. In lm-eval this is head-0 AR quality (same decoding mode as adapted LoRA). To force a separate multi-token pass instead of reusing adapted results:
+```bash
+python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo --force_multi_token_run
+```
 
 ## Notes
 - Default config is tuned for a single 24GB GPU with gradient accumulation.

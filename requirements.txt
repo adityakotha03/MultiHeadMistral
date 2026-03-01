@@ -4,6 +4,7 @@ accelerate
 huggingface_hub
 peft
 datasets
+lm_eval[hf]
 bitsandbytes
 safetensors
 wandb
@@ -11,3 +12,4 @@ pyyaml
 python-dotenv
 tqdm
 sentencepiece
+Pillow
