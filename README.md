@@ -4,6 +4,11 @@ This repo trains `mistralai/Ministral-3-3B-Instruct-2512` with extra future-toke
 
 **Note: We ran all our experiments on a 3090 runpod instance, please use the same to replicate our results.**
 
+<p align="center">
+  <img src="figs/hydraMistral.png" alt="Hydra Multi-Token Head Illustration" width="420">
+</p>
+
+
 ## What This Implements
 - LoRA fine-tuning on Hugging Face `mbpp` code tasks (`use_4bit=false` by default).
 - Optional QLoRA path when `use_4bit=true` and checkpoint compatibility allows 4-bit loading.
@@ -139,5 +144,3 @@ python -m src.lm_eval_benchmark --model_dir outputs/mt_3b_demo --force_multi_tok
 - `Ministral-3-3B-Instruct-2512` may expose native FP8 quantization metadata; this code auto-disables 4-bit bitsandbytes loading for compatibility.
 - Checkpointing defaults: `save_steps=100`, `save_total_limit=3`.
 - Benchmark defaults: `warmup_prompts=3`, `repeats=3`, `fixed_length=true`, `include_raw_base=true`.
-- If OOM occurs, reduce `max_seq_len` and/or `num_train_steps`.
-- This is a hackathon baseline, designed for fast iteration and clear instrumentation.
