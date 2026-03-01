@@ -19,9 +19,10 @@ Fine-tunes `mistralai/Ministral-3-3B-Instruct-2512` with **speculative multi-tok
 
 <p align="center">
   <img src="figs/speed_side_by_side.gif" alt="Side-by-side: adapted baseline (left) vs multi-token heads (right)" width="720">
-  <br><em>Adapted baseline greedy decoding (left) vs multi-token speculative decoding (right)</em>
 </p>
 
+
+Architecture:
 <p align="center">
   <img src="figs/hydraMistral.png" alt="Hydra Multi-Token Head Illustration" width="720">
 </p>
