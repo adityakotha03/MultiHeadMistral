@@ -62,6 +62,11 @@ class MultiTokenMistralConfig:
 
     benchmark_num_prompts: int = 30
     benchmark_max_new_tokens: int = 128
+    benchmark_warmup_prompts: int = 3
+    benchmark_repeats: int = 3
+    benchmark_fixed_length: bool = True
+    benchmark_include_per_prompt: bool = False
+    benchmark_include_raw_base: bool = True
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "MultiTokenMistralConfig":

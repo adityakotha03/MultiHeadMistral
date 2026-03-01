@@ -49,3 +49,8 @@ wandb_run_name: mt-heads-demo
 
 benchmark_num_prompts: 30
 benchmark_max_new_tokens: 128
+benchmark_warmup_prompts: 3
+benchmark_repeats: 3
+benchmark_fixed_length: true
+benchmark_include_per_prompt: false
+benchmark_include_raw_base: true

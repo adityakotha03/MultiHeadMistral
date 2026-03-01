@@ -308,6 +308,26 @@ def load_base_model_for_inference(
     return adapted_model
 
 
+def load_raw_base_model_for_inference(
+    cfg: MultiTokenMistralConfig,
+    hf_token: Optional[str] = None,
+):
+    quantization_config, _, model_type = _resolve_quantization_config(
+        cfg=cfg,
+        model_name_or_path=cfg.base_model_name,
+        hf_token=hf_token,
+    )
+    base_model = _load_model_with_auto_fallback(
+        model_name_or_path=cfg.base_model_name,
+        hf_token=hf_token,
+        quantization_config=quantization_config,
+        model_type=model_type,
+    )
+    _set_use_cache_flag(base_model, use_cache=True)
+    base_model.eval()
+    return base_model
+
+
 class MultiTokenMistralModel(nn.Module):
     def __init__(
         self,

@@ -3,7 +3,8 @@
 This repo trains `mistralai/Ministral-3-3B-Instruct-2512` with extra future-token heads and benchmarks inference speed against normal greedy decoding.
 
 ## What This Implements
-- QLoRA fine-tuning on Hugging Face `mbpp` code tasks.
+- LoRA fine-tuning on Hugging Face `mbpp` code tasks (`use_4bit=false` by default).
+- Optional QLoRA path when `use_4bit=true` and checkpoint compatibility allows 4-bit loading.
 - Multi-token loss:
   - Head 0: next token (`+1`).
   - Extra heads: future tokens (`+2`, `+3`, ...).
@@ -48,21 +49,37 @@ Training artifacts saved in `output_dir`:
 
 ## 3) Benchmark Inference
 ```bash
-python -m src.infer_benchmark --model_dir outputs/mt_3b_demo --num_prompts 30 --max_new_tokens 128
+python -m src.infer_benchmark --model_dir outputs/mt_3b_demo --num_prompts 30 --warmup_prompts 3 --repeats 3 --max_new_tokens 128 --fixed_length
 ```
 
 If training is interrupted and you only have a `checkpoint-*` folder:
 ```bash
-python -m src.infer_benchmark --checkpoint_dir outputs/mt_3b_demo/checkpoint-400 --config configs/default.yaml --num_prompts 30 --max_new_tokens 128
+python -m src.infer_benchmark --checkpoint_dir outputs/mt_3b_demo/checkpoint-400 --config configs/default.yaml --num_prompts 30 --warmup_prompts 3 --repeats 3 --max_new_tokens 128 --fixed_length
+```
+
+Use realistic EOS stopping instead of fixed-length timing:
+```bash
+python -m src.infer_benchmark --model_dir outputs/mt_3b_demo --num_prompts 30 --warmup_prompts 3 --repeats 3 --max_new_tokens 128 --eos_aware
+```
+
+Run only adapted baseline vs multi-token (skip raw base model):
+```bash
+python -m src.infer_benchmark --model_dir outputs/mt_3b_demo --no_include_raw_base
 ```
 
 Outputs:
-- Console summary with baseline vs multi-token timings.
+- Console table per repeat + aggregate medians.
 - `benchmark_results.json` in run output dir.
+- Includes `token_acceptance_rate` for both modes (baseline is `1.0` by definition, multi-token is accepted drafted tokens / drafted tokens).
+- 3-way comparison by default:
+  - `raw_base` (original model AR)
+  - `adapted_baseline` (LoRA model AR)
+  - `multi_token` (LoRA model + multi-token decode)
 
 ## Notes
 - Default config is tuned for a single 24GB GPU with gradient accumulation.
 - `Ministral-3-3B-Instruct-2512` may expose native FP8 quantization metadata; this code auto-disables 4-bit bitsandbytes loading for compatibility.
 - Checkpointing defaults: `save_steps=100`, `save_total_limit=3`.
+- Benchmark defaults: `warmup_prompts=3`, `repeats=3`, `fixed_length=true`, `include_raw_base=true`.
 - If OOM occurs, reduce `max_seq_len` and/or `num_train_steps`.
 - This is a hackathon baseline, designed for fast iteration and clear instrumentation.
