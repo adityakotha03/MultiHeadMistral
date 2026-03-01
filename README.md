@@ -5,7 +5,7 @@ This repo trains `mistralai/Ministral-3-3B-Instruct-2512` with extra future-toke
 **Note: We ran all our experiments on a 3090 runpod instance, please use the same to replicate our results.**
 
 <p align="center">
-  <img src="figs/hydraMistral.png" alt="Hydra Multi-Token Head Illustration" width="420">
+  <img src="figs/hydraMistral.png" alt="Hydra Multi-Token Head Illustration" width="720">
 </p>
 
 
