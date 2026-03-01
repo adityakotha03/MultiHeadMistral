@@ -41,6 +41,12 @@ python -m src.train --config configs/default.yaml --output_dir outputs/my_run --
 ```
 If the latest checkpoint is corrupted (e.g., interrupted write), the script will auto-skip it and use the latest readable checkpoint.
 
+Print model trainable-weight fractions only (no training):
+```bash
+python -m src.train --config configs/default.yaml --print_param_stats_only
+```
+This writes `training_param_stats.json` in `output_dir` with total/trainable/frozen counts and LoRA vs aux-head breakdown.
+
 Training artifacts saved in `output_dir`:
 - `checkpoint-*/` (Trainer checkpoints for resume)
 - `adapter/` (LoRA adapter)

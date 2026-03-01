@@ -108,7 +108,7 @@ class PerfAndLossCallback(TrainerCallback):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train Ministal 3B with multi-token heads (QLoRA + W&B).")
+    parser = argparse.ArgumentParser(description="Train Ministal 3B with multi-token heads (LoRA + W&B).")
     parser.add_argument("--config", type=str, default="configs/default.yaml", help="Path to YAML config.")
     parser.add_argument("--output_dir", type=str, default=None, help="Optional output_dir override.")
     parser.add_argument("--max_steps", type=int, default=None, help="Optional num_train_steps override.")
